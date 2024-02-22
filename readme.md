@@ -1,9 +1,8 @@
 ### introduction
 * 添加了注释和{}，其它没有改动
-
 * `flow.txt`是用中文写的程序的运行流程，帮助理解
-
 * 源码来源：HKUST-Aerial-Robotics/A-LOAM，https://github.com/HKUST-Aerial-Robotics/A-LOAM
+* 论文作者的两篇论文：《2014 LOAM Lidar Odometry and Mapping in Real-time》《2016 Low-drift and real-time lidar odometry and mapping》
 
 ### helpful links
 * LOAM论文介绍与A-LOAM代码简介：https://zhuanlan.zhihu.com/p/259662645
