@@ -1,6 +1,6 @@
 /*
 Description: 两种角度的转换
-Author     : Wang Junpeng
+Author     : Ji Qingshi
 date       :
 */
 

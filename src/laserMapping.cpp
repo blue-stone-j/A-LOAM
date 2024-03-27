@@ -1,6 +1,6 @@
 /*
 Description:
-Author     : Wang Junpeng
+Author     : Ji Qingshi
 date       :
 */
 
@@ -24,8 +24,7 @@ date       :
 #include <ceres/ceres.h>
 #include <mutex>
 #include <queue>
-#include <thread>
-// c++ 11的标准的线程库：std::thread。
+#include <thread> // c++ 11的标准的线程库：std::thread。
 #include <iostream>
 #include <string>
 
