@@ -1,5 +1,5 @@
 /*
-Description:
+Description: 在使用ceres计算时用到的因子，包括边、面、法向量、距离。
 Author     : Ji Qingshi
 date       :
 */
@@ -14,8 +14,8 @@ date       :
 
 struct LidarEdgeFactor
 {
-  LidarEdgeFactor(Eigen::Vector3d curr_point_, Eigen::Vector3d last_point_a_, Eigen::Vector3d last_point_b_, double s_)
-      : curr_point(curr_point_), last_point_a(last_point_a_), last_point_b(last_point_b_), s(s_) {}
+  LidarEdgeFactor(Eigen::Vector3d curr_point_, Eigen::Vector3d last_point_a_, Eigen::Vector3d last_point_b_, double s_) :
+    curr_point(curr_point_), last_point_a(last_point_a_), last_point_b(last_point_b_), s(s_) {}
 
   template <typename T>
   bool operator()(const T *q, const T *t, T *residual) const
@@ -69,12 +69,12 @@ struct LidarPlaneFactor
                    Eigen::Vector3d last_point_j_,
                    Eigen::Vector3d last_point_l_,
                    Eigen::Vector3d last_point_m_,
-                   double s_)
-      : curr_point(curr_point_), // 作为构造函数的传入
-        last_point_j(last_point_j_),
-        last_point_l(last_point_l_),
-        last_point_m(last_point_m_),
-        s(s_)
+                   double s_) :
+    curr_point(curr_point_), // 作为构造函数的传入
+    last_point_j(last_point_j_),
+    last_point_l(last_point_l_),
+    last_point_m(last_point_m_),
+    s(s_)
   {
     // 平面的单位法向量
     // 向量叉乘结果垂直于原来的两个向量
@@ -122,8 +122,8 @@ struct LidarPlaneFactor
 
 struct LidarPlaneNormFactor
 {
-  LidarPlaneNormFactor(Eigen::Vector3d curr_point_, Eigen::Vector3d plane_unit_norm_, double negative_OA_dot_norm_)
-      : curr_point(curr_point_), plane_unit_norm(plane_unit_norm_), negative_OA_dot_norm(negative_OA_dot_norm_) {}
+  LidarPlaneNormFactor(Eigen::Vector3d curr_point_, Eigen::Vector3d plane_unit_norm_, double negative_OA_dot_norm_) :
+    curr_point(curr_point_), plane_unit_norm(plane_unit_norm_), negative_OA_dot_norm(negative_OA_dot_norm_) {}
 
   template <typename T>
   bool operator()(const T *q, const T *t, T *residual) const
@@ -154,8 +154,8 @@ struct LidarPlaneNormFactor
 
 struct LidarDistanceFactor
 {
-  LidarDistanceFactor(Eigen::Vector3d curr_point_, Eigen::Vector3d closed_point_)
-      : curr_point(curr_point_), closed_point(closed_point_) {}
+  LidarDistanceFactor(Eigen::Vector3d curr_point_, Eigen::Vector3d closed_point_) :
+    curr_point(curr_point_), closed_point(closed_point_) {}
 
   template <typename T>
   bool operator()(const T *q, const T *t, T *residual) const
