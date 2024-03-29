@@ -92,7 +92,7 @@ std::queue<sensor_msgs::PointCloud2ConstPtr> fullResBuf;
 std::queue<nav_msgs::Odometry::ConstPtr> odometryBuf; // 存储里程计的buffer
 std::mutex mBuf;
 
-pcl::VoxelGrid<PointType> downSizeFilterCorner;
+pcl::VoxelGrid<PointType> downSizeFilterCorner; // 对当前帧点云下采样
 pcl::VoxelGrid<PointType> downSizeFilterSurf;
 
 std::vector<int> pointSearchInd;
@@ -209,9 +209,9 @@ void process()
     {
       mBuf.lock();
 
-      // 前端频率高于后端，需要去除一些点防止内存爆炸；
-      // 因为后端耗时长，buf中的最新数据可能是很久之前的。去除部分数据使后端尽可能处理接近当前时间的数据，提高实时性。
-      // 在后续代码中清理了corner buffer。此处再以cornerLastBuf为基准，把其他buffer中时间戳小的pop掉。
+      // 前端频率高于后端，需要去除一些点防止内存爆炸.
+      // 因为后端耗时长，buf中的最新数据可能是很久之前的,去除部分数据使后端尽可能处理接近当前时间的数据，提高实时性。
+      // 在后续代码中清理了corner buffer,此处再以cornerLastBuf为基准，把其他buffer中时间戳小的pop掉。
       while (!odometryBuf.empty() && odometryBuf.front()->header.stamp.toSec() < cornerLastBuf.front()->header.stamp.toSec())
       {
         odometryBuf.pop();
@@ -276,20 +276,20 @@ void process()
       t_wodom_curr.z() = odometryBuf.front()->pose.pose.position.z;
       odometryBuf.pop();
 
+      // 清理这个corner buffer
       while (!cornerLastBuf.empty())
-      { // 清理这个corner buffer
+      {
         cornerLastBuf.pop();
         printf("drop lidar frame in mapping for real time performance \n");
       }
 
       mBuf.unlock();
       TicToc t_whole;
-      // 根据前端结果，得到后端的一个初始估计值
 
+      // 根据前端结果，得到后端的一个初始估计值
       transformAssociateToMap();
 
-      // 栅格为边长为50m的立方体；21*21*11个栅格的局部地图，水平1公里，纵向500m；其余部分舍弃
-      // 动态更新局部地图
+      // 动态更新局部地图：栅格为边长为50m的立方体；21*21*11个栅格的局部地图，水平1公里，纵向500m；其余部分舍弃
       TicToc t_shift;
       // 根据初始估计值计算寻找当前位姿在地图中的索引，一个各自边长为50m
       // 后端的地图本质上是一个以当前点为中心的一个栅格地图
@@ -325,7 +325,8 @@ void process()
             pcl::PointCloud<PointType>::Ptr laserCloudCubeSurfPointer   = laserCloudSurfArray[i + laserCloudWidth * j + laserCloudWidth * laserCloudHeight * k];
             // 整体右移
             for (; i >= 1; i--)
-            { // 将i-1的点云转移到i
+            {
+              // 将i-1的点云转移到i
               laserCloudCornerArray[i + laserCloudWidth * j + laserCloudWidth * laserCloudHeight * k] = laserCloudCornerArray[i - 1 + laserCloudWidth * j + laserCloudWidth * laserCloudHeight * k];
               laserCloudSurfArray[i + laserCloudWidth * j + laserCloudWidth * laserCloudHeight * k]   = laserCloudSurfArray[i - 1 + laserCloudWidth * j + laserCloudWidth * laserCloudHeight * k];
             }
@@ -488,7 +489,7 @@ void process()
             }
           }
         }
-      }
+      } // endfor: 小局部地图的栅格ID
 
       laserCloudCornerFromMap->clear(); // 点云指针；surround points in map to build tree
       laserCloudSurfFromMap->clear();
@@ -500,6 +501,7 @@ void process()
       }
       int laserCloudCornerFromMapNum = laserCloudCornerFromMap->points.size();
       int laserCloudSurfFromMapNum   = laserCloudSurfFromMap->points.size();
+      // 已经得到当前帧对应的小局部地图
 
       // 为减少运算量，对当前帧点云下采样
       pcl::PointCloud<PointType>::Ptr laserCloudCornerStack(new pcl::PointCloud<PointType>);
@@ -525,8 +527,9 @@ void process()
         kdtreeSurfFromMap->setInputCloud(laserCloudSurfFromMap);
         printf("build tree time %f ms \n", t_tree.toc());
 
+        // 建立对应关系的迭代次数不超过2次
         for (int iterCount = 0; iterCount < 2; iterCount++)
-        { // 建立对应关系的迭代次数不超过2次
+        {
           // ceres::LossFunction *loss_function = NULL;
           // 参考前端里程计的代码注释
           // 建立ceres问题
@@ -541,9 +544,9 @@ void process()
 
           TicToc t_data;
           int corner_num = 0;
-          // 构建角点相关的约束
+          // 构建角点相关的约束；遍历当前帧所有点（已经下采样）
           for (int i = 0; i < laserCloudCornerStackNum; i++)
-          {                                              // 遍历当前帧所有点（已经下采样）
+          {
             pointOri = laserCloudCornerStack->points[i]; // 数据类型为点；
             // double sqrtDis = pointOri.x * pointOri.x + pointOri.y * pointOri.y + pointOri.z * pointOri.z;
             // 里程计坐标系下的坐标转换为地图坐标系下的坐标；转换参数为当前点和两个坐标系的位姿变换的初始值
@@ -551,8 +554,9 @@ void process()
             // 在小局部地图中寻找最近的5个点
             kdtreeCornerFromMap->nearestKSearch(pointSel, 5, pointSearchInd, pointSearchSqDis);
 
+            // 5个最近点中，最远的距离不得超过1米，否则为无效约束
             if (pointSearchSqDis[4] < 1.0)
-            { // 5个最近点中，最远的距离不得超过1米，否则为无效约束
+            {
               std::vector<Eigen::Vector3d> nearCorners;
               Eigen::Vector3d center(0, 0, 0);
               for (int j = 0; j < 5; j++)
@@ -567,9 +571,10 @@ void process()
 
               // 需要保证5个点共线；无线束ID等信息，必须通过其它方式判断; 如果有行号和列号，可以辅助判断是否共线
               // 若5个点在同一直线上，则5个点的协方差矩阵的特征值为一大两小；最大特征值对应的特征向量为直线的方向向量
+              // 构建协方差矩阵
               Eigen::Matrix3d covMat = Eigen::Matrix3d::Zero();
               for (int j = 0; j < 5; j++)
-              { // 构建协方差矩阵
+              {
                 Eigen::Matrix<double, 3, 1> tmpZeroMean = nearCorners[j] - center;
                 covMat                                  = covMat + tmpZeroMean * tmpZeroMean.transpose(); // 3维向量变为3*3矩阵
               }
@@ -580,8 +585,9 @@ void process()
               // note Eigen library sort eigenvalues in increasing order;
               Eigen::Vector3d unit_direction = saes.eigenvectors().col(2); // 升序排列特征值，第3个特征向量为线特征的方向
               Eigen::Vector3d curr_point(pointOri.x, pointOri.y, pointOri.z);
+              // 最大的特征值远大于另外两个，说明5点共线
               if (saes.eigenvalues()[2] > 3 * saes.eigenvalues()[1])
-              {                                         // 最大的特征值远大于另外两个，说明5点共线
+              {
                 Eigen::Vector3d point_on_line = center; // 一个点+方向=一条直线
                 Eigen::Vector3d point_a, point_b;
                 // 根据拟合的直线，构建两个虚拟点
@@ -658,7 +664,7 @@ void process()
               Eigen::Vector3d curr_point(pointOri.x, pointOri.y, pointOri.z);
               if (planeValid)
               {
-                // 利用平面方程构建约束，和前端构建形式不同(使用了函数指针,一个只想函数的指针)
+                // 利用平面方程构建约束，和前端构建形式不同(使用了函数指针,一个指向函数的指针)
                 ceres::CostFunction *cost_function = LidarPlaneNormFactor::Create(curr_point, norm, negative_OA_dot_norm);
                 problem.AddResidualBlock(cost_function, loss_function, parameters, parameters + 4);
                 surf_num++;
@@ -704,7 +710,8 @@ void process()
           // printf("corner factor num %d surf factor num %d\n", corner_num, surf_num);
           // printf("result q %f %f %f %f result t %f %f %f\n", parameters[3], parameters[0], parameters[1], parameters[2],
           //	   parameters[4], parameters[5], parameters[6]);
-        }
+        } // endfor: end registration iteration
+
         printf("mapping optimization time %f \n", t_opt.toc()); // 优化两次的时间
       }
       else
@@ -725,11 +732,17 @@ void process()
         int cubeK = int((pointSel.z + 25.0) / 50.0) + laserCloudCenDepth;
         // 因为向0取整，所以同上
         if (pointSel.x + 25.0 < 0)
+        {
           cubeI--;
+        }
         if (pointSel.y + 25.0 < 0)
+        {
           cubeJ--;
+        }
         if (pointSel.z + 25.0 < 0)
+        {
           cubeK--;
+        }
         // 如果越界就不更新地图
         if (cubeI >= 0 && cubeI < laserCloudWidth && cubeJ >= 0 && cubeJ < laserCloudHeight && cubeK >= 0 && cubeK < laserCloudDepth)
         {
@@ -748,11 +761,17 @@ void process()
         int cubeK = int((pointSel.z + 25.0) / 50.0) + laserCloudCenDepth;
 
         if (pointSel.x + 25.0 < 0)
+        {
           cubeI--;
+        }
         if (pointSel.y + 25.0 < 0)
+        {
           cubeJ--;
+        }
         if (pointSel.z + 25.0 < 0)
+        {
           cubeK--;
+        }
 
         if (cubeI >= 0 && cubeI < laserCloudWidth && cubeJ >= 0 && cubeJ < laserCloudHeight && cubeK >= 0 && cubeK < laserCloudDepth)
         {
@@ -805,8 +824,9 @@ void process()
       {
         printf("旋转：%f 平移:%f\n", q_w_curr.x(), t_w_curr.x());
         pcl::PointCloud<PointType> laserCloudMap;
+        // 大局部地图的栅格总数
         for (int i = 0; i < 4851; i++)
-        { // 大局部地图的栅格总数
+        {
           laserCloudMap += *laserCloudCornerArray[i];
           laserCloudMap += *laserCloudSurfArray[i];
         }
@@ -870,10 +890,12 @@ void process()
       br.sendTransform(tf::StampedTransform(transform, odomAftMapped.header.stamp, "/camera_init", "/aft_mapped"));
 
       frameCount++;
-    }
+    } // endwhile: odom is empty
+
     std::chrono::milliseconds dura(2); // 2毫秒
     std::this_thread::sleep_for(dura); // 暂停2毫秒
-  }
+
+  } // endwhile(1):
 }
 
 int main(int argc, char **argv)
