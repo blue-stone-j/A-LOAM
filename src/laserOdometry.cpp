@@ -228,7 +228,7 @@ int main(int argc, char **argv)
       printf("chw:%d %d\n", cornerLessSharpBuf.front()->height, cornerLessSharpBuf.front()->width);
       pcl::fromROSMsg(*cornerLessSharpBuf.front(), *cornerPointsLessSharp);
       cornerLessSharpBuf.pop();
-      printf("c:%d\n", cornerPointsLessSharp->points.size());
+      printf("c:%zu\n", cornerPointsLessSharp->points.size());
 
       surfPointsFlat->clear();
       pcl::fromROSMsg(*surfFlatBuf.front(), *surfPointsFlat);
@@ -238,7 +238,7 @@ int main(int argc, char **argv)
       printf("empty:%d\n", surfLessFlatBuf.empty());
       printf("shw:%d %d\n", surfLessFlatBuf.front()->height, surfLessFlatBuf.front()->width);
       pcl::fromROSMsg(*surfLessFlatBuf.front(), *surfPointsLessFlat);
-      printf("s:%d\n", surfPointsLessFlat->points.size());
+      printf("s:%zu\n", surfPointsLessFlat->points.size());
       surfLessFlatBuf.pop();
 
       laserCloudFullRes->clear();
@@ -573,8 +573,8 @@ int main(int argc, char **argv)
       }
 
       // 将当前帧的点改为上一帧，用上一帧的点覆盖当前帧，用覆盖代替clear
-      printf("1 c:%d--s:%d\n", laserCloudCornerLast->points.size(), laserCloudSurfLast->points.size());
-      printf("2 c:%d--s:%d\n", cornerPointsLessSharp->points.size(), surfPointsLessFlat->points.size());
+      printf("1 c:%zu--s:%zu\n", laserCloudCornerLast->points.size(), laserCloudSurfLast->points.size());
+      printf("2 c:%zu--s:%zu\n", cornerPointsLessSharp->points.size(), surfPointsLessFlat->points.size());
       pcl::PointCloud<PointType>::Ptr laserCloudTemp = cornerPointsLessSharp;
       cornerPointsLessSharp                          = laserCloudCornerLast;
       laserCloudCornerLast                           = laserCloudTemp;

@@ -512,7 +512,7 @@ void process()
       pcl::PointCloud<PointType>::Ptr laserCloudSurfStack(new pcl::PointCloud<PointType>());
       downSizeFilterSurf.setInputCloud(laserCloudSurfLast); // 下采样的原始点云
       downSizeFilterSurf.filter(*laserCloudSurfStack);      // 保存下采样结果
-      int laserCloudSurfStackNum = laserCloudSurfStack->points.size(pointSel);
+      int laserCloudSurfStackNum = laserCloudSurfStack->points.size();
 
       printf("map prepare time %f ms\n", t_shift.toc());
       printf("map corner num %d  surf num %d \n", laserCloudCornerFromMapNum, laserCloudSurfFromMapNum);

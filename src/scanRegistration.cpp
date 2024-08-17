@@ -10,7 +10,8 @@ date       :
 #include "aloam_velodyne/common.h"
 #include "aloam_velodyne/tic_toc.h"
 #include <nav_msgs/Odometry.h>
-#include <opencv/cv.h> // 如果你使用的是noetic自带的OpenCV，需要改为"opencv2/core.hpp"
+// #include <opencv/cv.h> // 如果你使用的是noetic自带的OpenCV，需要改为"opencv2/core.hpp"
+#include <opencv2/core.hpp>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_cloud.h>        //点云类的具体定义可参考文件<pcl/point_cloud.h>；
 #include <pcl/point_types.h>        //点类的具体定义
